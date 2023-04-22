@@ -22,9 +22,9 @@ DATA_DIR = "./data"
 
 import numpy as np
 import tensorflow as tf
-from tensorflow.keras import layers, models, optimizers
-from tensorflow.keras import backend as K
-from tensorflow.keras.utils import to_categorical
+from keras import layers, models, optimizers
+from keras import backend as K
+from keras.utils import to_categorical
 import matplotlib.pyplot as plt
 from utils import combine_images
 from PIL import Image
@@ -56,13 +56,13 @@ def CapsNet(input_shape, n_class, routings, batch_size, embedding_layer):
     x = layers.Input(shape=input_shape, batch_size=batch_size)
     e = embedding_layer(x)
 
-    inc_dim = layers.Lambda(lambda x: tf.expand_dims(x, -1))(e)
+    # inc_dim = layers.Lambda(lambda x: tf.expand_dims(x, -1))(e)
 
     # Layer 1: Just a conventional Conv2D layer
-    conv1 = layers.Conv1D(filters=256, kernel_size=5, strides=1, padding='valid', activation='relu', name='conv1')(inc_dim)
+    # conv1 = layers.Conv1D(filters=256, kernel_size=5, strides=1, padding='valid', activation='relu', name='conv1')(inc_dim)
 
     # Layer 2: Conv2D layer with `squash` activation, then reshape to [None, num_capsule, dim_capsule]
-    primarycaps = PrimaryCap(conv1, dim_capsule=8, n_channels=32, kernel_size=9, strides=2, padding='valid')
+    primarycaps = PrimaryCap(e, dim_capsule=8, n_channels=32, kernel_size=9, strides=2, padding='valid')
 
     # Layer 3: Capsule layer. Routing algorithm works here.
     digitcaps = CapsuleLayer(num_capsule=n_class, dim_capsule=16, routings=routings, name='digitcaps')(primarycaps)
@@ -210,7 +210,7 @@ def manipulate_latent(model, data, args):
 
 def load_mnist():
     # the data, shuffled and split between train and test sets
-    from tensorflow.keras.datasets import mnist
+    from keras.datasets import mnist
     (x_train, y_train), (x_test, y_test) = mnist.load_data()
 
     x_train = x_train.reshape(-1, 28, 28, 1).astype('float32') / 255.
@@ -219,7 +219,7 @@ def load_mnist():
     y_test = to_categorical(y_test.astype('float32'))
     return (x_train, y_train), (x_test, y_test)
 
-def load_sentiment140(embeddings, embedding_size, max_seq, logger=logger):
+def load_sentiment140(embeddings, embedding_size, max_seq, batch_size, logger=logger):
     # load data
 
 
@@ -233,7 +233,7 @@ def load_sentiment140(embeddings, embedding_size, max_seq, logger=logger):
                                encoding="latin-1")
 
         Y_train = df_train["target"]
-        vocab_length = df_train["vocab_length"]
+        vocab_length = df_train["vocab_length"].to_numpy(dtype=int)[0]
         df_train.drop(columns="target", inplace=True)
         df_train.drop(columns="vocab_length", inplace=True)
         X_train = df_train.to_numpy()
@@ -248,7 +248,6 @@ def load_sentiment140(embeddings, embedding_size, max_seq, logger=logger):
         X_test = df_test.to_numpy()
 
 
-        vocab_length = len(np.unique(X_train, axis=None))
         tokenizer = None
 
 
@@ -312,35 +311,29 @@ def load_sentiment140(embeddings, embedding_size, max_seq, logger=logger):
     Y_train = to_categorical(tf.constant(Y_train, dtype=tf.float32))
     Y_test = to_categorical(tf.constant(Y_test, dtype=tf.float32))
 
+    print(vocab_length)
+
+    logger.info(f"CREATING EMBEDDING LAYER USING {embeddings}")
     embedding_layer = create_embedding_layer(vocab_len=vocab_length, max_length=max_seq, embedding_size=embedding_size,
                                              embeddings=embeddings, save="sentiment140", tokenizer=tokenizer,
                                              max_vocab_len=100000)
 
-
+    num_train_batches = len(X_train) // batch_size
+    num_test_batches = len(X_test) // batch_size
+    X_train = X_train[:num_train_batches * batch_size]
+    Y_train = Y_train[:num_train_batches * batch_size]
+    X_test = X_test[:num_test_batches * batch_size]
+    Y_test = Y_test[:num_test_batches * batch_size]
 
 
     return (X_train, Y_train), (X_test, Y_test), embedding_layer
 
 
 
-
-
-
-
-
-
-    logger.info(f"CREATING EMBEDDING LAYER USING {embeddings}")
-    embedding_layer = create_embedding_layer(tokenizer, max_length=max_seq, save="sentiment140",
-                                             embeddings=embeddings, embedding_size=embedding_size)
-
-
-    return (X_train_padded, Y_train), (X_test_padded, Y_test), embedding_layer
-
 if __name__ == "__main__":
     import os
     import argparse
-    from tensorflow.keras.preprocessing.image import ImageDataGenerator
-    from tensorflow.keras import callbacks
+    from keras import callbacks
 
     gpus = tf.config.list_physical_devices('GPU')
     tf.config.experimental.set_memory_growth(gpus[0], True)
@@ -384,7 +377,7 @@ if __name__ == "__main__":
     logger.info(f"GPUS: {len(physical_devices)}")
 
     if args.dataset == "sentiment140":
-        (X_train, Y_train), (X_test, Y_test), embedding_layer = load_sentiment140(args.embeddings, args.embedding_size, args.max_seq)
+        (X_train, Y_train), (X_test, Y_test), embedding_layer = load_sentiment140(args.embeddings, args.embedding_size, args.max_seq, batch_size=args.batch_size)
     else:
         pass
 
