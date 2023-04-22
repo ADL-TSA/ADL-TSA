@@ -114,9 +114,9 @@ def clean_input(X, save=None):
             to_save.to_csv(save)
     else:
         print("LOOOAD")
-        read = pandas.read_csv(save)
+        read = pandas.read_csv(save, index_col=0)
         X_clean = []
-        for line in read.iloc[:, 1]:
+        for line in read.iloc[:, 0]:
             X_clean.append(line)
 
 

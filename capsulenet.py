@@ -16,6 +16,8 @@ Result:
     
 Author: Xifeng Guo, E-mail: `guoxifeng1990@163.com`, Github: `https://github.com/XifengGuo/CapsNet-Keras`
 """
+import math
+
 DATA_DIR = "./data"
 
 import numpy as np
@@ -36,6 +38,10 @@ from keras.utils import pad_sequences
 
 K.set_image_data_format('channels_last')
 
+logger = logging.getLogger("LOGGER")
+logging.basicConfig(level=logging.INFO)
+logger.setLevel(level=logging.INFO)
+
 
 def CapsNet(input_shape, n_class, routings, batch_size, embedding_layer):
     """
@@ -50,10 +56,10 @@ def CapsNet(input_shape, n_class, routings, batch_size, embedding_layer):
     x = layers.Input(shape=input_shape, batch_size=batch_size)
     e = embedding_layer(x)
 
-    reshape = layers.Lambda(lambda x: tf.expand_dims(x, -1))(e)
+    inc_dim = layers.Lambda(lambda x: tf.expand_dims(x, -1))(e)
 
     # Layer 1: Just a conventional Conv2D layer
-    conv1 = layers.Conv1D(filters=256, kernel_size=5, strides=1, padding='valid', activation='relu', name='conv1')(reshape)
+    conv1 = layers.Conv1D(filters=256, kernel_size=5, strides=1, padding='valid', activation='relu', name='conv1')(inc_dim)
 
     # Layer 2: Conv2D layer with `squash` activation, then reshape to [None, num_capsule, dim_capsule]
     primarycaps = PrimaryCap(conv1, dim_capsule=8, n_channels=32, kernel_size=9, strides=2, padding='valid')
@@ -136,13 +142,13 @@ def train(model,  # type: models.Model
     """
 
     # Begin: Training with data augmentation ---------------------------------------------------------------------#
-    def train_generator(x, y, batch_size, shift_fraction=0.):
-        train_datagen = ImageDataGenerator(width_shift_range=shift_fraction,
-                                           height_shift_range=shift_fraction)  # shift up to 2 pixel for MNIST
-        generator = train_datagen.flow(x, y, batch_size=batch_size)
-        while 1:
-            x_batch, y_batch = generator.next()
-            yield (x_batch, y_batch), (y_batch, x_batch)
+    # def train_generator(x, y, batch_size, shift_fraction=0.):
+    #     train_datagen = ImageDataGenerator(width_shift_range=shift_fraction,
+    #                                        height_shift_range=shift_fraction)  # shift up to 2 pixel for MNIST
+    #     generator = train_datagen.flow(x, y, batch_size=batch_size)
+    #     while 1:
+    #         x_batch, y_batch = generator.next()
+    #         yield (x_batch, y_batch), (y_batch, x_batch)
 
     # Training with data augmentation. If shift_fraction=0., no augmentation.
     model.fit((x_train, y_train), (y_train, x_train),
@@ -213,6 +219,122 @@ def load_mnist():
     y_test = to_categorical(y_test.astype('float32'))
     return (x_train, y_train), (x_test, y_test)
 
+def load_sentiment140(embeddings, embedding_size, max_seq, logger=logger):
+    # load data
+
+
+    processed_train = f"{DATA_DIR}/sentiment140/train/train_seq_padded_{max_seq}.csv"
+    processed_test = f"{DATA_DIR}/sentiment140/test/test_seq_padded_{max_seq}.csv"
+
+    if os.path.isfile(processed_train) and os.path.isfile(processed_test):
+        logger.info(f"PROCESSED TRAIN DATA ALREADY EXISTS. LOADING: {processed_train}")
+        df_train = pd.read_csv(processed_train,
+                               index_col=0,
+                               encoding="latin-1")
+
+        Y_train = df_train["target"]
+        vocab_length = df_train["vocab_length"]
+        df_train.drop(columns="target", inplace=True)
+        df_train.drop(columns="vocab_length", inplace=True)
+        X_train = df_train.to_numpy()
+
+
+        logger.info(f"PROCESSED TEST DATA ALREADY EXISTS. LOADING: {processed_test}")
+        df_test = pd.read_csv(processed_test,
+                               index_col=0,
+                               encoding="latin-1")
+        Y_test = df_test["target"]
+        df_test.drop(columns="target", inplace=True)
+        X_test = df_test.to_numpy()
+
+
+        vocab_length = len(np.unique(X_train, axis=None))
+        tokenizer = None
+
+
+    else:
+        logger.info(f"OPENING {DATA_DIR}/setiment140/train")
+        df_train = pd.read_csv(f"{DATA_DIR}/sentiment140/test/test.csv",
+                               names=['target', 'id', 'date', 'flag', 'user', 'text'],
+                               encoding="latin-1")
+
+        X_train_proc = df_train["text"]
+        Y_train_proc = df_train["target"]
+
+        df_test = pd.read_csv(f"{DATA_DIR}/sentiment140/test/test.csv",
+                              names=['target', 'id', 'date', 'flag', 'user', 'text'],
+                              encoding='latin-1')
+
+        X_test_proc = df_test["text"]
+        Y_test_proc = df_test["target"]
+
+        logger.info(f"CLEANING INPUT")
+        X_train_proc = clean_input(X_train_proc, save=f"{DATA_DIR}/{args.dataset}/train/train_clean.csv")
+        X_test_proc = clean_input(X_test_proc, save=f"{DATA_DIR}/{args.dataset}/test/test_clean.csv")
+
+        logger.info(f"CREATING TOKENIZER")
+        tokenizer = create_tokenizer(X_train_proc, save="sentiment140")
+        vocab_length = len(tokenizer.word_index)
+
+        X_train_proc = tokenizer.texts_to_sequences(X_train_proc)
+        X_test_proc = tokenizer.texts_to_sequences(X_test_proc)
+
+
+        logger.info("PADDING INPUT")
+        padding_type = 'post'
+        truncation_type = 'post'
+
+        X_test = pad_sequences(X_test_proc, maxlen=max_seq,
+                                      padding=padding_type, truncating=truncation_type)
+
+        X_train = pad_sequences(X_train_proc, maxlen=max_seq, padding=padding_type,
+                                       truncating=truncation_type)
+
+        logger.info("FORMATTING TARGET DATA")
+        Y_train = np.floor_divide(Y_train_proc, 2)
+        Y_test = np.floor_divide(Y_test_proc,  2)
+
+
+        train_save = pd.concat((pd.DataFrame(Y_train), pd.DataFrame(X_train), pd.DataFrame([vocab_length], columns=["vocab_length"])), axis=1)
+        test_save = pd.concat((pd.DataFrame(Y_test), pd.DataFrame(X_test)), axis=1)
+        temp_cols = train_save.columns.to_list()
+        temp_cols2 = test_save.columns.to_list()
+        temp_cols[0] = "target"
+        temp_cols2[0] = "target"
+        train_save.columns = temp_cols
+        test_save.columns = temp_cols2
+
+
+        train_save.to_csv(processed_train)
+        test_save.to_csv(processed_test)
+
+
+    Y_train = to_categorical(tf.constant(Y_train, dtype=tf.float32))
+    Y_test = to_categorical(tf.constant(Y_test, dtype=tf.float32))
+
+    embedding_layer = create_embedding_layer(vocab_len=vocab_length, max_length=max_seq, embedding_size=embedding_size,
+                                             embeddings=embeddings, save="sentiment140", tokenizer=tokenizer,
+                                             max_vocab_len=100000)
+
+
+
+
+    return (X_train, Y_train), (X_test, Y_test), embedding_layer
+
+
+
+
+
+
+
+
+
+    logger.info(f"CREATING EMBEDDING LAYER USING {embeddings}")
+    embedding_layer = create_embedding_layer(tokenizer, max_length=max_seq, save="sentiment140",
+                                             embeddings=embeddings, embedding_size=embedding_size)
+
+
+    return (X_train_padded, Y_train), (X_test_padded, Y_test), embedding_layer
 
 if __name__ == "__main__":
     import os
@@ -225,7 +347,7 @@ if __name__ == "__main__":
 
     # setting the hyper parameters
     parser = argparse.ArgumentParser(description="Capsule Network on MNIST.")
-    parser.add_argument("--dataset", default="sentiment140", type=str, help="Location of Dataset File")
+    parser.add_argument("--dataset", default="sentiment140", type=str, help="Name of Dataset to Load (Sentiment140o or ???)")
     parser.add_argument("--max_seq", default=25, type=int, help="Maximum Number of Words to Consider")
     parser.add_argument("--embeddings", default="glove.6B.50d", type=str, help="Name of Embedding File")
     parser.add_argument("--embedding_size", default=50, type=int, help="Dimensions of Embedding in Embedding File")
@@ -256,55 +378,21 @@ if __name__ == "__main__":
     if not os.path.exists(args.save_dir):
         os.makedirs(args.save_dir)
 
-    # load data
-    logger = logging.getLogger("LOGGER")
-    logging.basicConfig(level=logging.INFO)
-    logger.setLevel(level=logging.INFO)
 
     physical_devices = tf.config.list_physical_devices('GPU')
     tf.config.experimental.set_memory_growth(physical_devices[0], enable=True)
     logger.info(f"GPUS: {len(physical_devices)}")
 
-    logger.info(f"OPENING {DATA_DIR}/{args.dataset}")
-    df_train = pd.read_csv(f"{DATA_DIR}/{args.dataset}/train/train.csv",
-                           names=['target', 'id', 'date', 'flag', 'user', 'text'],
-                           encoding="ISO-8859-1")
-    df_test = pd.read_csv(f"{DATA_DIR}/{args.dataset}/test/test.csv", encoding='latin-1')
-
-    X_train = df_train.iloc[:, 5]
-    Y_train = df_train.iloc[:, 0]
-
-    X_test = df_test.iloc[:, 5]
-    Y_test = df_test.iloc[:, 0]
-
-    logger.info(f"CLEANING INPUT")
-    X_train_clean = clean_input(X_train, save=f"{DATA_DIR}/{args.dataset}/train/train_clean.csv")
-    X_test_clean = clean_input(X_test, save=f"{DATA_DIR}/{args.dataset}/test/test_clean.csv")
-
-    logger.info(f"CREATING TOKENIZER")
-    tokenizer = create_tokenizer(X_train_clean, save=args.dataset)
-
-    X_train_sequences = tokenizer.texts_to_sequences(X_train_clean)
-    X_test_sequences = tokenizer.texts_to_sequences(X_test_clean)
-
-    padding_type = 'post'
-    truncation_type = 'post'
-
-    X_test_padded = pad_sequences(X_test_sequences, maxlen=args.max_seq,
-                                  padding=padding_type, truncating=truncation_type)
-
-    X_train_padded = pad_sequences(X_train_sequences, maxlen=args.max_seq, padding=padding_type,
-                                   truncating=truncation_type)
-
-    logger.info(f"CREATING EMBEDDING LAYER USING {args.embeddings}")
-    embedding_layer = create_embedding_layer(tokenizer, max_length=args.max_seq, save=args.dataset + args.embeddings,
-                                             embeddings=args.embeddings, embedding_size=args.embedding_size)
+    if args.dataset == "sentiment140":
+        (X_train, Y_train), (X_test, Y_test), embedding_layer = load_sentiment140(args.embeddings, args.embedding_size, args.max_seq)
+    else:
+        pass
 
 
-    Y_train = tf.cast(Y_train, tf.float32)
+
     # define model
     model, eval_model, manipulate_model = CapsNet(input_shape=(args.max_seq),
-                                                  n_class=len(np.unique(Y_train)),
+                                                  n_class=len(np.unique(np.argmax(Y_train, 1))),
                                                   routings=args.routings,
                                                   batch_size=args.batch_size, embedding_layer=embedding_layer)
     model.summary()
@@ -313,9 +401,9 @@ if __name__ == "__main__":
     if args.weights is not None:  # init the model weights with provided one
         model.load_weights(args.weights)
     if not args.testing:
-        train(model=model, data=((X_train_padded, Y_train), (X_test_padded, Y_test)), args=args)
+        train(model=model, data=((X_train, Y_train), (X_test, Y_test)), args=args)
     else:  # as long as weights are given, will run testing
         if args.weights is None:
             print('No weights are provided. Will test using random initialized weights.')
-        manipulate_latent(manipulate_model, (X_test_padded, Y_test), args)
-        test(model=eval_model, data=(X_test_padded, Y_test), args=args)
+        manipulate_latent(manipulate_model, (X_test, Y_test), args)
+        test(model=eval_model, data=(X_test, Y_test), args=args)

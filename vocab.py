@@ -10,7 +10,7 @@ VOCAB_DIR = "./vocab"
 EMBEDDING_DIR = "./embeddings"
 
 def create_tokenizer(X_clean, vocab_size=100000, save=None):
-    tokenizer_path = f"{VOCAB_DIR}/{save}.tokens"
+    tokenizer_path = f"{VOCAB_DIR}/{save}.{vocab_size}.tokens"
 
     if os.path.isfile(tokenizer_path):
         with open(tokenizer_path, encoding='latin-1') as f:
@@ -28,8 +28,8 @@ def create_tokenizer(X_clean, vocab_size=100000, save=None):
     return tokenizer
 
 
-def create_embedding_layer(tokenizer, max_length, embeddings, embedding_size, save=None):
-    embedding_matrix_path = f"{EMBEDDING_DIR}/matrices/{save}"
+def create_embedding_layer(vocab_len, max_length, embeddings, embedding_size, max_vocab_len=100000, save=None, tokenizer=None):
+    embedding_matrix_path = f"{EMBEDDING_DIR}/matrices/{save}.{embeddings}.{max_vocab_len}"
 
     if not os.path.isfile(f"{embedding_matrix_path}.npy"):
         embeddings_index = {}
@@ -41,7 +41,7 @@ def create_embedding_layer(tokenizer, max_length, embeddings, embedding_size, sa
             embeddings_index[word] = coefs
         f.close()
 
-        embedding_matrix = np.zeros((len(tokenizer.word_index) + 1, embedding_size))
+        embedding_matrix = np.zeros((vocab_len + 1, embedding_size))
         for word, i in tokenizer.word_index.items():
             embedding_vector = embeddings_index.get(word)
             if embedding_vector is not None:
@@ -50,10 +50,9 @@ def create_embedding_layer(tokenizer, max_length, embeddings, embedding_size, sa
         if save:
             np.save(embedding_matrix_path, embedding_matrix)
     else:
-        print("Load")
         embedding_matrix = np.load(f"{embedding_matrix_path}.npy")
 
-    embedding_layer = Embedding(input_dim=len(tokenizer.word_index) + 1,
+    embedding_layer = Embedding(input_dim=vocab_len + 1,
                                 output_dim=embedding_size,
                                 weights=[embedding_matrix],
                                 input_length=max_length,
