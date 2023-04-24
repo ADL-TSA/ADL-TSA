@@ -9,8 +9,8 @@ Author: Xifeng Guo, E-mail: `guoxifeng1990@163.com`, Github: `https://github.com
 """
 
 import tensorflow as tf
-import tensorflow.keras.backend as K
-from tensorflow.keras import initializers, layers
+import keras.backend as K
+from keras import initializers, layers
 
 
 class Length(layers.Layer):

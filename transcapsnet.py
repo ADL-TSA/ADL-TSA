@@ -156,7 +156,7 @@ def train(model,  # type: models.Model
     #         x_batch, y_batch = generator.next()
     #         yield (x_batch, y_batch), (y_batch, x_batch)
 
-    # Training with data augmentation. If shift_fraction=0., no augmentation.
+    # Training with data augmentation. If shift_fraction=0., n o augmentation.
     model.fit((x_train, y_train), (y_train, x_train),
               steps_per_epoch=int(y_train.shape[0] / args.batch_size),
               epochs=args.epochs,
@@ -303,7 +303,9 @@ def load_sentiment140(embeddings, embedding_size, max_seq, batch_size, logger=lo
 
 
         train_save = pd.concat((pd.DataFrame(Y_train), pd.DataFrame(X_train)), axis=1)
+        train_save = train_save.sample(frac=1)
         test_save = pd.concat((pd.DataFrame(Y_test), pd.DataFrame(X_test)), axis=1)
+        test_save = test_save.sample(frac=1)
         temp_cols = train_save.columns.to_list()
         temp_cols2 = test_save.columns.to_list()
         temp_cols[0] = "target"
@@ -314,6 +316,16 @@ def load_sentiment140(embeddings, embedding_size, max_seq, batch_size, logger=lo
 
         train_save.to_csv(processed_train)
         test_save.to_csv(processed_test)
+
+        Y_train = train_save["target"]
+        Y_test = test_save["target"]
+
+        train_save.drop(columns="target", inplace=True)
+        test_save.drop(columns="target", inplace=True)
+
+        X_train = train_save.to_numpy()
+        X_test = test_save.to_numpy()
+
 
 
     Y_train = to_categorical(tf.constant(Y_train, dtype=tf.float32))

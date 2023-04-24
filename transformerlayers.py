@@ -30,12 +30,12 @@ class PositionEmbeddingFixedWeights(Layer):
         return P
 
     def call(self, inputs):
-        position_indices = range(shape(inputs)[-1])
+       #  position_indices = range(shape(inputs)[-1])
         embedded_words = self.word_embedding_layer(inputs)
         print(embedded_words.shape)
-        padded = tensorflow.pad(embedded_words, [[0, 0], [0, 0], [0, self.output_dim - self.embedding_size]], 'CONSTANT')
-        embedded_indices = self.position_embedding_layer(position_indices)
-        return padded + embedded_indices
+        padded = tensorflow.pad(embedded_words, [[0, 0], [0, 0], [0, self.output_dim - self.embedding_size]], 'REFLECT')
+        # embedded_indices = self.position_embedding_layer(position_indices)
+        return padded # + embedded_indices
 
 # Implementing the Scaled-Dot Product Attention
 class DotProductAttention(Layer):
