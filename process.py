@@ -1,6 +1,4 @@
-import os
-
-import pandas
+#Taken From https://github.com/rohanrao619/Twitter_Sentiment_Analysis
 
 NLTK_DIR = "./corpus"
 INPUT_DIR = "./data"
@@ -9,7 +7,7 @@ INPUT_DIR = "./data"
 import nltk
 
 nltk.data.path.append(f"{NLTK_DIR}")
-# Define Preprocessing functions (Taken From https://github.com/rohanrao619/Twitter_Sentiment_Analysis)
+
 def tokenize(X):
     """
     Tokenize the data using nltk
@@ -94,30 +92,20 @@ def lemmatize(X):
     return X_lemmatized
 
 
-def clean_input(X, save=None):
-
-    if not os.path.isfile(save):
-
-        X_tokenized = tokenize(X)
-
-        X_without_stopwords = remove_stopwords ( X_tokenized )
-
-        X_lemmatized = lemmatize(X_without_stopwords)
-
-        X_clean = []
-        for sentence in X_lemmatized:
-          X_clean.append(" ".join(sentence))
+def clean_input(X):
 
 
-        if save:
-            to_save = pandas.DataFrame(X_clean)
-            to_save.to_csv(save)
-    else:
-        print("LOOOAD")
-        read = pandas.read_csv(save, index_col=0)
-        X_clean = []
-        for line in read.iloc[:, 0]:
-            X_clean.append(line)
+    X_tokenized = tokenize(X)
+
+    X_without_stopwords = remove_stopwords ( X_tokenized )
+
+    X_lemmatized = lemmatize(X_without_stopwords)
+
+    X_clean = []
+    for sentence in X_lemmatized:
+      X_clean.append(" ".join(sentence))
+
+
 
 
     return X_clean

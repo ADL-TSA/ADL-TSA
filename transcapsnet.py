@@ -5,9 +5,9 @@ The current version maybe only works for TensorFlow backend. Actually it will be
 Adopting to other backends should be easy, but I have not tested this. 
 
 Usage:
-       python capsulenet.py
-       python capsulenet.py --epochs 50
-       python capsulenet.py --epochs 50 --routings 3
+       python transcapsnet.py
+       python transcapsnet.py --epochs 50
+       python transcapsnet.py --epochs 50 --routings 3
        ... ...
        
 Result:
@@ -17,6 +17,8 @@ Result:
 Author: Xifeng Guo, E-mail: `guoxifeng1990@163.com`, Github: `https://github.com/XifengGuo/CapsNet-Keras`
 """
 import math
+
+import keras.utils
 
 DATA_DIR = "./data"
 
@@ -35,6 +37,7 @@ from process import clean_input
 from vocab import create_tokenizer
 from vocab import create_embedding_layer
 from keras.utils import pad_sequences
+from transformerlayers import Encoder
 
 K.set_image_data_format('channels_last')
 
@@ -43,7 +46,7 @@ logging.basicConfig(level=logging.INFO)
 logger.setLevel(level=logging.INFO)
 
 
-def CapsNet(input_shape, n_class, routings, batch_size, embedding_layer):
+def CapsNet(input_shape, n_class, routings, batch_size, sequence_length=25, embedding_size=300,  embedding_layer=None, trans_off=False):
     """
     A Capsule Network on MNIST.
     :param input_shape: data shape, 3d, [width, height, channels]
@@ -54,15 +57,20 @@ def CapsNet(input_shape, n_class, routings, batch_size, embedding_layer):
             `eval_model` can also be used for training.
     """
     x = layers.Input(shape=input_shape, batch_size=batch_size)
-    e = embedding_layer(x)
 
-    # inc_dim = layers.Lambda(lambda x: tf.expand_dims(x, -1))(e)
 
-    # Layer 1: Just a conventional Conv2D layer
-    # conv1 = layers.Conv1D(filters=256, kernel_size=5, strides=1, padding='valid', activation='relu', name='conv1')(inc_dim)
+    # Layer 1 in Basic Model, LSTM for feature extraction
+
+    if not trans_off:
+        e = Encoder(sequence_length=sequence_length, embedding_layer=embedding_layer, embedding_size=embedding_size, h=8, d_k=64, d_v=64, d_model=512, d_ff=2048, n=6)(x)
+    else:
+        e = embedding_layer(x)
+
+    lstm = layers.LSTM(512)(e)
+    inc_dim = layers.Lambda(lambda x: tf.expand_dims(x, -1))(lstm)
 
     # Layer 2: Conv2D layer with `squash` activation, then reshape to [None, num_capsule, dim_capsule]
-    primarycaps = PrimaryCap(e, dim_capsule=8, n_channels=32, kernel_size=9, strides=2, padding='valid')
+    primarycaps = PrimaryCap(inc_dim, dim_capsule=8, n_channels=32, kernel_size=32, strides=16, padding='same')
 
     # Layer 3: Capsule layer. Routing algorithm works here.
     digitcaps = CapsuleLayer(num_capsule=n_class, dim_capsule=16, routings=routings, name='digitcaps')(primarycaps)
@@ -103,7 +111,6 @@ def margin_loss(y_true, y_pred):
     :return: a scalar loss value.
     """
     # return tf.reduce_mean(tf.square(y_pred))
-    print(y_true)
     L = y_true * tf.square(tf.maximum(0., 0.9 - y_pred)) + \
         0.5 * (1 - y_true) * tf.square(tf.maximum(0., y_pred - 0.1))
 
@@ -121,12 +128,11 @@ def train(model,  # type: models.Model
     """
     # unpacking the data
     (x_train, y_train), (x_test, y_test) = data
-    print(len(x_train), len(y_train))
 
     # callbacks
     log = callbacks.CSVLogger(args.save_dir + '/log.csv')
-    checkpoint = callbacks.ModelCheckpoint(args.save_dir + '/weights-{epoch:02d}.h5', monitor='val_capsnet_acc',
-                                           save_best_only=True, save_weights_only=True, verbose=1)
+    checkpoint = callbacks.ModelCheckpoint(args.save_dir + '/weights-{epoch:02d}.h5', monitor='val_capsnet_accuracy',
+                                           save_best_only=False, save_weights_only=True, verbose=1)
     lr_decay = callbacks.LearningRateScheduler(schedule=lambda epoch: args.lr * (args.lr_decay ** epoch))
 
     # compile the model
@@ -169,18 +175,10 @@ def train(model,  # type: models.Model
 
 def test(model, data, args):
     x_test, y_test = data
-    y_pred, x_recon = model.predict(x_test, batch_size=100)
+    y_pred, x_recon = model.predict(x_test, batch_size=64)
     print('-' * 30 + 'Begin: test' + '-' * 30)
     print('Test acc:', np.sum(np.argmax(y_pred, 1) == np.argmax(y_test, 1)) / y_test.shape[0])
 
-    img = combine_images(np.concatenate([x_test[:50], x_recon[:50]]))
-    image = img * 255
-    Image.fromarray(image.astype(np.uint8)).save(args.save_dir + "/real_and_recon.png")
-    print()
-    print('Reconstructed images are saved to %s/real_and_recon.png' % args.save_dir)
-    print('-' * 30 + 'End: test' + '-' * 30)
-    plt.imshow(plt.imread(args.save_dir + "/real_and_recon.png"))
-    plt.show()
 
 
 def manipulate_latent(model, data, args):
@@ -233,9 +231,7 @@ def load_sentiment140(embeddings, embedding_size, max_seq, batch_size, logger=lo
                                encoding="latin-1")
 
         Y_train = df_train["target"]
-        vocab_length = df_train["vocab_length"].to_numpy(dtype=int)[0]
         df_train.drop(columns="target", inplace=True)
-        df_train.drop(columns="vocab_length", inplace=True)
         X_train = df_train.to_numpy()
 
 
@@ -247,33 +243,45 @@ def load_sentiment140(embeddings, embedding_size, max_seq, batch_size, logger=lo
         df_test.drop(columns="target", inplace=True)
         X_test = df_test.to_numpy()
 
-
-        tokenizer = None
-
-
     else:
-        logger.info(f"OPENING {DATA_DIR}/setiment140/train")
-        df_train = pd.read_csv(f"{DATA_DIR}/sentiment140/test/test.csv",
-                               names=['target', 'id', 'date', 'flag', 'user', 'text'],
-                               encoding="latin-1")
+        clean_path = f"{DATA_DIR}/{args.dataset}/dataset_cleaned.csv"
+        if os.path.isfile(clean_path):
+            logger.info(f"CLEAN DATA EXISTS. OPENING: {clean_path}")
+            df = pd.read_csv(clean_path, index_col=0, dtype=str, keep_default_na=False)
+        else:
+            data_path = f"{DATA_DIR}/sentiment140/sentiment140.csv"
+            logger.info(f"OPENING {data_path}")
+            df = pd.read_csv(data_path, names=['target', 'id', 'date', 'flag', 'user', 'text'],
+                             encoding="latin-1")
+            logger.info(f"CLEANING INPUT")
+            X_clean = clean_input(df["text"])
+            df["text"] = X_clean
+            logger.info(f"SAVING CLEANED INPUT TO {clean_path}")
+            df.to_csv(clean_path)
+
+
+        df["target"] = df["target"].astype(int)
+        test_frac=0.8
+        logger.info(f"CREATING TEST TRAIN SPLIT: Test: {test_frac:.2f} / Train: {1 - test_frac:.2f}")
+        df_train = df.sample(frac=test_frac, random_state=42)
+        df_test = df.drop(df_train.index)
+        df_train.sort_index(inplace=True)
+        df_train.reset_index(inplace=True)
+        df_test.sort_index(inplace=True)
+        df_test.reset_index(inplace=True)
+
+        logger.info(f"SAVING TRAIN TEST SPLIT TO {DATA_DIR}/{args.dataset}/train/train.csv and {DATA_DIR}/{args.dataset}/test/test.csv")
+        df_train.to_csv(f"{DATA_DIR}/{args.dataset}/train/train.csv")
+        df_test.to_csv(f"{DATA_DIR}/{args.dataset}/test/test.csv")
 
         X_train_proc = df_train["text"]
         Y_train_proc = df_train["target"]
 
-        df_test = pd.read_csv(f"{DATA_DIR}/sentiment140/test/test.csv",
-                              names=['target', 'id', 'date', 'flag', 'user', 'text'],
-                              encoding='latin-1')
-
         X_test_proc = df_test["text"]
         Y_test_proc = df_test["target"]
 
-        logger.info(f"CLEANING INPUT")
-        X_train_proc = clean_input(X_train_proc, save=f"{DATA_DIR}/{args.dataset}/train/train_clean.csv")
-        X_test_proc = clean_input(X_test_proc, save=f"{DATA_DIR}/{args.dataset}/test/test_clean.csv")
-
         logger.info(f"CREATING TOKENIZER")
         tokenizer = create_tokenizer(X_train_proc, save="sentiment140")
-        vocab_length = len(tokenizer.word_index)
 
         X_train_proc = tokenizer.texts_to_sequences(X_train_proc)
         X_test_proc = tokenizer.texts_to_sequences(X_test_proc)
@@ -290,11 +298,11 @@ def load_sentiment140(embeddings, embedding_size, max_seq, batch_size, logger=lo
                                        truncating=truncation_type)
 
         logger.info("FORMATTING TARGET DATA")
-        Y_train = np.floor_divide(Y_train_proc, 2)
-        Y_test = np.floor_divide(Y_test_proc,  2)
+        Y_train = np.floor_divide(Y_train_proc, 4)
+        Y_test = np.floor_divide(Y_test_proc,  4)
 
 
-        train_save = pd.concat((pd.DataFrame(Y_train), pd.DataFrame(X_train), pd.DataFrame([vocab_length], columns=["vocab_length"])), axis=1)
+        train_save = pd.concat((pd.DataFrame(Y_train), pd.DataFrame(X_train)), axis=1)
         test_save = pd.concat((pd.DataFrame(Y_test), pd.DataFrame(X_test)), axis=1)
         temp_cols = train_save.columns.to_list()
         temp_cols2 = test_save.columns.to_list()
@@ -311,12 +319,11 @@ def load_sentiment140(embeddings, embedding_size, max_seq, batch_size, logger=lo
     Y_train = to_categorical(tf.constant(Y_train, dtype=tf.float32))
     Y_test = to_categorical(tf.constant(Y_test, dtype=tf.float32))
 
-    print(vocab_length)
 
     logger.info(f"CREATING EMBEDDING LAYER USING {embeddings}")
-    embedding_layer = create_embedding_layer(vocab_len=vocab_length, max_length=max_seq, embedding_size=embedding_size,
-                                             embeddings=embeddings, save="sentiment140", tokenizer=tokenizer,
-                                             max_vocab_len=100000)
+    tokenizer = create_tokenizer(X_train, save="sentiment140")
+    embedding_layer = create_embedding_layer(vocab_len=100000, max_length=max_seq, embedding_size=embedding_size,
+                                             embeddings=embeddings, save="sentiment140", tokenizer=tokenizer)
 
     num_train_batches = len(X_train) // batch_size
     num_test_batches = len(X_test) // batch_size
@@ -341,10 +348,11 @@ if __name__ == "__main__":
     # setting the hyper parameters
     parser = argparse.ArgumentParser(description="Capsule Network on MNIST.")
     parser.add_argument("--dataset", default="sentiment140", type=str, help="Name of Dataset to Load (Sentiment140o or ???)")
+    parser.add_argument("--trans_off", default=True, type=bool, help="Disables the Transformer Layer (Replaced by LSTM)")
     parser.add_argument("--max_seq", default=25, type=int, help="Maximum Number of Words to Consider")
-    parser.add_argument("--embeddings", default="glove.6B.50d", type=str, help="Name of Embedding File")
-    parser.add_argument("--embedding_size", default=50, type=int, help="Dimensions of Embedding in Embedding File")
-    parser.add_argument('--epochs', default=50, type=int)
+    parser.add_argument("--embeddings", default="glove.6B.100d", type=str, help="Name of Embedding File")
+    parser.add_argument("--embedding_size", default=100, type=int, help="Dimensions of Embedding in Embedding File")
+    parser.add_argument('--epochs', default=5, type=int)
     parser.add_argument('--batch_size', default=64, type=int)
     parser.add_argument('--lr', default=0.001, type=float,
                         help="Initial learning rate")
@@ -384,10 +392,15 @@ if __name__ == "__main__":
 
 
     # define model
+    logger.info("CREATING MODEL")
     model, eval_model, manipulate_model = CapsNet(input_shape=(args.max_seq),
-                                                  n_class=len(np.unique(np.argmax(Y_train, 1))),
+                                                  n_class=len(Y_train[0]),
                                                   routings=args.routings,
-                                                  batch_size=args.batch_size, embedding_layer=embedding_layer)
+                                                  sequence_length=args.max_seq,
+                                                  embedding_size=args.embedding_size,
+                                                  batch_size=args.batch_size,
+                                                  embedding_layer=embedding_layer,
+                                                  trans_off=args.trans_off)
     model.summary()
 
     # train or test
@@ -398,5 +411,5 @@ if __name__ == "__main__":
     else:  # as long as weights are given, will run testing
         if args.weights is None:
             print('No weights are provided. Will test using random initialized weights.')
-        manipulate_latent(manipulate_model, (X_test, Y_test), args)
+        # manipulate_latent(manipulate_model, (X_test, Y_test), args)
         test(model=eval_model, data=(X_test, Y_test), args=args)

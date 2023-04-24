@@ -184,9 +184,9 @@ def PrimaryCap(inputs, dim_capsule, n_channels, kernel_size, strides, padding):
     :param n_channels: the number of types of capsules
     :return: output tensor, shape=[None, num_capsule, dim_capsule]
     """
-    # output = layers.Conv1D(filters=dim_capsule*n_channels, kernel_size=kernel_size, strides=strides, padding=padding,
-    #                        name='primarycap_conv2d')(inputs)
-    output = layers.LSTM(dim_capsule * n_channels)(inputs)
+    output = layers.Conv1D(filters=dim_capsule, kernel_size=kernel_size, strides=strides, padding=padding,
+                           name='primarycap_conv2d')(inputs)
+    # output = layers.LSTM(dim_capsule * n_channels)(inputs)
     outputs = layers.Reshape(target_shape=[n_channels, dim_capsule], name='primarycap_reshape')(output)
     return layers.Lambda(squash, name='primarycap_squash')(outputs)
 
