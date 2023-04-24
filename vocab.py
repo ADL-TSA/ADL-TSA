@@ -18,7 +18,7 @@ def create_tokenizer(X_clean, vocab_size=100000, save=None):
             tokenizer = tokenizer_from_json(data)
     else:
         oov_token = "<OOV>"
-        tokenizer = Tokenizer(num_words=vocab_size, oov_token=oov_token)
+        tokenizer = Tokenizer(num_words=vocab_size)
         tokenizer.fit_on_texts(X_clean)
 
         if save is not None:
@@ -53,7 +53,7 @@ def create_embedding_layer(vocab_len, max_length, embeddings, embedding_size, sa
     else:
         embedding_matrix = np.load(f"{embedding_matrix_path}.npy")
 
-    embedding_layer = Embedding(input_dim=vocab_len - 1,
+    embedding_layer = Embedding(input_dim=vocab_len,
                                 output_dim=embedding_size,
                                 weights=[embedding_matrix],
                                 input_length=max_length,
