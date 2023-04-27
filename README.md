@@ -30,10 +30,10 @@ python transcapsnet.py --testing --weights ./model/transcaps/trained_model.h5 --
 ```
 
 The '--dataset' argument can be set to any of the following:
-	- sentiment140
-	- airlines
-	- stocks
-	- sanders
+* sentiment140
+* airlines
+* stocks
+* sanders
 
 **DO NOT** change the --embedding_dataset argument, as that refers to the dataset used to train the model, which the embeddings are based off of. 
 
@@ -105,24 +105,24 @@ It should be noted that there have been reports of NLTK not working properly if 
 This project should include all the data needed to run. However, in the case that it's not possible to download the entire project, you'll have to manually download the datasets to the proper subdirectories.
 
 The project expects the datasets to be formulated as follows:
-	- Datsets will be located in the "./data" subdirectory
-	- Each dataset will be located in it's own folder named datasetname
-	- All data will be in a singular CSV file within this folder named datasetname.csv
-		- The program will create an additional file, data_clean.csv in the folder, which contains processed data
-	- There needs to be two empty folders within this directory as well, named train and test
-		- The program will place training and testing data artifacts in these folders in order to speed up future runs
-		- The program will **NOT** create these folders on it's own, the user must do so
+- Datsets will be located in the "./data" subdirectory
+- Each dataset will be located in it's own folder named datasetname
+- All data will be in a singular CSV file within this folder named datasetname.csv
+	- The program will create an additional file, data_clean.csv in the folder, which contains processed data
+- There needs to be two empty folders within this directory as well, named train and test
+	- The program will place training and testing data artifacts in these folders in order to speed up future runs
+	- The program will **NOT** create these folders on it's own, the user must do so
 
 ## Data Processing
 Data is processed in different unique ways depending on the dataset. The general flow is:
-	1. Data is read in as a pandas dataframe
-	2. Text data is tokenized, stemmed, and lemmetized
-	4. Data is split 80/20 into train/test
-	3. A vocabullary is constructed based on tokens
-	4. An embedding matrix is constructed for the whole vocabulary
-	5. Text is turned into sequence data using only the top 50,000 words
-	6. Data is padded/truncated to a fixed sequence length
-	7. Label data is transformed into categorical data
+1. Data is read in as a pandas dataframe
+2. Text data is tokenized, stemmed, and lemmetized
+4. Data is split 80/20 into train/test
+3. A vocabullary is constructed based on tokens
+4. An embedding matrix is constructed for the whole vocabulary
+5. Text is turned into sequence data using only the top 50,000 words
+6. Data is padded/truncated to a fixed sequence length
+7. Label data is transformed into categorical data
 
 The preprocessor will attempt to save data at intermediate steps to help speed up execution.
 
