@@ -24,7 +24,7 @@ The datasets are very large, making data parsing and training very CPU intensive
 python transcapsnet.py --testing --weights ./model/onlycaps/trained_model.h5 --dataset sentiment140 --embedding_dataset sentiment140 --trans_off
 ```
 
-**Transoformer and Capsule**
+**Transformer and Capsule**
 ```
 python transcapsnet.py --testing --weights ./model/transcaps/trained_model.h5 --dataset sentiment140 --embedding_dataset sentiment140 
 ```

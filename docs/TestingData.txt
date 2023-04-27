@@ -1,5 +1,0 @@
-|              | Capsule Only | Transformer + Capsule |
-|--------------|--------------|-----------------------|
-| sentiment140 | 79.67%       | 79.77%                |
-| sanders      | 75.98%       | 77.44%                |
-| airlines     | ???          | ???                   |

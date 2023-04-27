@@ -189,10 +189,10 @@ def test(model, data, args):
     true_n = len([pred_labels[i] for i in range(len(pred_labels)) if pred_labels[i] == 0 and pred_labels[i] == true_labels[i]])
     false_n = len([pred_labels[i] for i in range(len(pred_labels)) if pred_labels[i] == 0 and pred_labels[i] != true_labels[i]])
 
-    print(f"Positive Precision: {true_p / (true_p + false_n)}")
-    print(f"Negative Precision: {true_n / (true_n + false_p)}")
-    print(f"Accuracy: {(true_p + true_n) / (true_p + true_n + false_p + false_n)}")
-    print(f"F1: {2 * (true_p / (true_p + false_p + false_n))}")
+    print(f"Positive Precision: {true_p / (true_p + false_n):.4f}")
+    print(f"Negative Precision: {true_n / (true_n + false_p):.4f}")
+    print(f"Accuracy: {(true_p + true_n) / (true_p + true_n + false_p + false_n):.4f}")
+    print(f"F1: {2 * (true_p / (true_p + false_p + false_n)):.4f}")
     print('Test acc:', np.sum(np.argmax(y_pred, 1) == np.argmax(y_test, 1)) / y_test.shape[0])
 
 
