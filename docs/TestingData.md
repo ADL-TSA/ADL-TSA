@@ -35,8 +35,8 @@
 **Comparisons of Positive/Negative Recall for Baseline Models (Sanders Dataset)**
 |                | Positive Recall | Negative Recall |
 |----------------|-----------------|-----------------|
-| Trans-CapsNet  | 0.7750          | 0.7739          |
-| CapsNet Only   | 0.7895          | 0.7334          |
+| Trans-CapsNet  | 0.775           | 0.774           |
+| CapsNet Only   | 0.790           | 0.733           |
 | BPEF           | 0.693           | 0.786           |
 | ChatterBox     | 0.526           | 0.451           |
 | FRN            | 0.372           | 0.421           |
