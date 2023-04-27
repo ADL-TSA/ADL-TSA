@@ -30,10 +30,10 @@ python transcapsnet.py --testing --weights ./model/transcaps/trained_model.h5 --
 ```
 
 The '--dataset' argument can be set to any of the following:
-	* sentiment140
-	* airlines
-	* stocks
-	* sanders
+	- sentiment140
+	- airlines
+	- stocks
+	- sanders
 
 **DO NOT** change the --embedding_dataset argument, as that refers to the dataset used to train the model, which the embeddings are based off of. 
 
@@ -72,11 +72,13 @@ pip install -r requirments.txt
 
 *Packages Required*
 ```
-numpy=
+numpy
 tensorflow=2.10.0
 keras=2.10.0
-nltk=
-
+nltk
+PIL
+pandas
+matplotlib
 ```
 
 **Additional Setup**
@@ -103,13 +105,13 @@ It should be noted that there have been reports of NLTK not working properly if 
 This project should include all the data needed to run. However, in the case that it's not possible to download the entire project, you'll have to manually download the datasets to the proper subdirectories.
 
 The project expects the datasets to be formulated as follows:
-	* Datsets will be located in the "./data" subdirectory
-	* Each dataset will be located in it's own folder named datasetname
-	* All data will be in a singular CSV file within this folder named datasetname.csv
-		* The program will create an additional file, data_clean.csv in the folder, which contains processed data
-	* There needs to be two empty folders within this directory as well, named train and test
-		* The program will place training and testing data artifacts in these folders in order to speed up future runs
-		* The program will **NOT** create these folders on it's own, the user must do so
+	- Datsets will be located in the "./data" subdirectory
+	- Each dataset will be located in it's own folder named datasetname
+	- All data will be in a singular CSV file within this folder named datasetname.csv
+		- The program will create an additional file, data_clean.csv in the folder, which contains processed data
+	- There needs to be two empty folders within this directory as well, named train and test
+		- The program will place training and testing data artifacts in these folders in order to speed up future runs
+		- The program will **NOT** create these folders on it's own, the user must do so
 
 ## Data Processing
 Data is processed in different unique ways depending on the dataset. The general flow is:
