@@ -7,40 +7,49 @@ The objective of this project is to attempt to create a highly accurate TSA (Twi
 
 
 ## Results
+**Capsule Network Only Training Accuracies**
+![](/docs/notransacc.png)
 
+**Transformer and Capsule Network Training Accuracies**
+![](/docs/transacc.png)
 
 ## Running the Code
 
 There are quite a few prerequisets that need to be satisfied before the code can actually be run. Make sure to complete every step under the requirments section before running the code.
 
-The datasets are very large, making data parsing and training very CPU intensive processes. For this reason, preprocessed data is saved in the project directory. If you ever get stuck waiting on a  "CLEANING INPUT" message, this means that this preprocessed data can't be found, and data processing will take about an hour. To run the pretrained models, navigate to the project directory (the one containing this file), and run the following commands:
+The datasets are very large, making data parsing and training very CPU intensive processes. For this reason, preprocessed data is saved in the project directory. If you ever get stuck waiting on a  "CLEANING INPUT" message, this means that this preprocessed data can't be found, and data processing will take about an hour. To run the pretrained models, navigate to the project directory (the one containing this file), and run one of the following commands to test a singular dataset:
 
 **Only Capsule:**
 ```
-
+python transcapsnet.py --testing --weights ./model/onlycaps/trained_model.h5 --dataset sentiment140 --embedding_dataset sentiment140 --trans_off
 ```
 
 **Transoformer and Capsule**
 ```
-
+python transcapsnet.py --testing --weights ./model/transcaps/trained_model.h5 --dataset sentiment140 --embedding_dataset sentiment140 
 ```
 
-If you'd like them to run on a different dataset, change the dataset flag to the new dataset name. Valid options are:
-
+The '--dataset' argument can be set to any of the following:
 	* sentiment140
-	* ???
+	* airlines
+	* stocks
+	* sanders
+
+**DO NOT** change the --embedding_dataset argument, as that refers to the dataset used to train the model, which the embeddings are based off of. 
 
 If you'd like to train a model, be aware that it took us ~1 hour per epoch (training on a NVIDIA 2070 Super), mainly due to the large dataset size. To train the model run the following commands. Like before, you can choose from any of the avaiable datasets.
 
 **Only Capsule:**
 ```
-
+python transcapsnet.py --dataset sentiment140 
 ```
 
 **Transformer and Capsule:**
 ```
-
+python transcapsnet.py --dataset sentiment140 --trans_off
 ```
+
+You should theoretically be able to switch out the dataset for any of the others listed above, but this code hasn't be run on anything other than sentiment140 for training, so they're not gaurenteed to work.
 
 After training, you can find the saved model weights in the './results' subdirectory. If you would like to save them, copy them to a new folder in the './model' subdirectory. **RUNNING THE MODEL TRAINING WILL OVERWRITE ANYTHING IN THE './results' SUBDIRECTORY.** So, if you don't want your trained model to be deleted, make sure to save it somewhere else.
 
