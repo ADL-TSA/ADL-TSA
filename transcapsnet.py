@@ -182,6 +182,17 @@ def test(model, data, args):
     x_test, y_test = data
     y_pred, x_recon = model.predict(x_test, batch_size=64)
     print('-' * 30 + 'Begin: test' + '-' * 30)
+    pred_labels = np.argmax(y_pred, 1)
+    true_labels = np.argmax(y_test, 1)
+    true_p = len([pred_labels[i] for i in range(len(pred_labels)) if pred_labels[i] == 1 and pred_labels[i] == true_labels[i]])
+    false_p = len([pred_labels[i] for i in range(len(pred_labels)) if pred_labels[i] == 1 and pred_labels[i] != true_labels[i]])
+    true_n = len([pred_labels[i] for i in range(len(pred_labels)) if pred_labels[i] == 0 and pred_labels[i] == true_labels[i]])
+    false_n = len([pred_labels[i] for i in range(len(pred_labels)) if pred_labels[i] == 0 and pred_labels[i] != true_labels[i]])
+
+    print(f"Positive Precision: {true_p / (true_p + false_n)}")
+    print(f"Negative Precision: {true_n / (true_n + false_p)}")
+    print(f"Accuracy: {(true_p + true_n) / (true_p + true_n + false_p + false_n)}")
+    print(f"F1: {2 * (true_p / (true_p + false_p + false_n))}")
     print('Test acc:', np.sum(np.argmax(y_pred, 1) == np.argmax(y_test, 1)) / y_test.shape[0])
 
 
@@ -755,9 +766,6 @@ if __name__ == "__main__":
     import argparse
     from keras import callbacks
 
-    gpus = tf.config.list_physical_devices('GPU')
-    tf.config.experimental.set_memory_growth(gpus[0], True)
-
     # setting the hyper parameters
     parser = argparse.ArgumentParser(description="Capsule Network on MNIST.")
     parser.add_argument("--dataset", default="sentiment140", type=str, choices=['sentiment140', 'airlines', 'stocks', 'sanders'], help="Name of Dataset to Load (sentiment140, sanders, or ???)")
@@ -794,9 +802,6 @@ if __name__ == "__main__":
         os.makedirs(args.save_dir)
 
 
-    physical_devices = tf.config.list_physical_devices('GPU')
-    tf.config.experimental.set_memory_growth(physical_devices[0], enable=True)
-    logger.info(f"GPUS: {len(physical_devices)}")
 
     tokenizer = get_tokenizer(args.embedding_dataset)
     if args.dataset == "sentiment140":

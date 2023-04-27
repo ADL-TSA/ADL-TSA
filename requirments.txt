@@ -1,7 +1,7 @@
 numpy 
 tensorflow==2.10
 keras==2.10
-PIL
+pillow
 pandas
 nltk
-matplotlib 
+matplotlib

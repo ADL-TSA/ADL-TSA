@@ -126,6 +126,12 @@ Data is processed in different unique ways depending on the dataset. The general
 
 The preprocessor will attempt to save data at intermediate steps to help speed up execution.
 
+## Datasets
+[Sentiment140](http://help.sentiment140.com/for-students/)
+[Sanders Analytics](https://github.com/zfz/twitter_corpus)
+[Airlines](https://www.kaggle.com/datasets/crowdflower/twitter-airline-sentiment)
+[Stocks](https://www.kaggle.com/datasets/yash612/stockmarket-sentiment-dataset)
+
 ## Acknowledgements
 
 Preprocessing Code: https://github.com/rohanrao619/Twitter_Sentiment_Analysis
