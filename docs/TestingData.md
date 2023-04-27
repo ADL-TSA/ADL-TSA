@@ -1,4 +1,4 @@
-# Accuracies of Transformer + Capsule Model vs Capsule Only Model
+**Accuracies of Transformer + Capsule Model vs Capsule Only Model**
 |              | Capsule Only | Transformer + Capsule |
 |--------------|--------------|-----------------------|
 | sentiment140 | 0.7967       | 0.7977                |
@@ -6,7 +6,7 @@
 | airlines     | 0.7826       | 0.7941                |
 | stocks       | 0.5955       | 0.6042                |
 
-# Positive Recall of Transformer + Capsule Model vs Capsule Only Model
+**Positive Recall of Transformer + Capsule Model vs Capsule Only Model**
 |              | Capsule Only | Transformer + Capsule |
 |--------------|--------------|-----------------------|
 | sentiment140 | 0.7895       | 0.8099                |
@@ -14,7 +14,7 @@
 | airlines     | 0.8592       | 0.8732                |
 | stocks       | 0.6273       | 0.6122                |
 
-# Negative Recall of Transformer + Capsule Model vs Capsule Only Model
+**Negative Recall of Transformer + Capsule Model vs Capsule Only Model**
 |              | Capsule Only | Transformer + Capsule |
 |--------------|--------------|-----------------------|
 | sentiment140 | 0.7334       | 0.7855                |
@@ -23,7 +23,7 @@
 | stocks       | 0.5400       | 0.5901                |
 
 
-# F1 Scores of Transformer + Capsule Model vs Capsule Only Model
+**F1 Scores of Transformer + Capsule Model vs Capsule Only Model**
 |              | Capsule Only | Transformer + Capsule |
 |--------------|--------------|-----------------------|
 | sentiment140 | 1.2128       | 1.3340                |
@@ -32,7 +32,7 @@
 | stocks       | 0.9929       | 0.9916                |
 
 
-# Comparisons of Positive/Negative Recall for Baseline Models (Sanders Dataset)
+**Comparisons of Positive/Negative Recall for Baseline Models (Sanders Dataset)**
 |                | Positive Recall | Negative Recall |
 |----------------|-----------------|-----------------|
 | Trans-CapsNet  | 0.7750          | 0.7739          |
