@@ -17,7 +17,11 @@ The objective of this project is to attempt to create a highly accurate TSA (Twi
 
 There are quite a few prerequisets that need to be satisfied before the code can actually be run. Make sure to complete every step under the requirments section before running the code.
 
-The datasets are very large, making data parsing and training very CPU intensive processes. For this reason, preprocessed data is saved in the project directory. If you ever get stuck waiting on a  "CLEANING INPUT" message, this means that this preprocessed data can't be found, and data processing will take about an hour. To run the pretrained models, navigate to the project directory (the one containing this file), and run one of the following commands to test a singular dataset:
+The datasets are very large, making data parsing and training very CPU intensive processes. For this reason, preprocessed data is saved in the project directory. If you ever get stuck waiting on a  "CLEANING INPUT" message, this means that this preprocessed data can't be found, and data processing will take about an hour. 
+
+Additionally, this model is designed to be run **ONLY** on a single GPU. In order to avoid issues when running on a machine with multiple GPU's, make sure to run them in a shell with the **CUDA_VISIBLE_DEVICES** set to **0**. Setting environmental variables varies from shell to shell, so it's impossible to provide a command for that here.
+
+To run the pretrained models, navigate to the project directory (the one containing this file), and run one of the following commands to test a singular dataset:
 
 **Only Capsule:**
 ```
